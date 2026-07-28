@@ -202,9 +202,9 @@ let asyncChecks = Promise.resolve();
   close(run.aim.x, 0, "first gyro event calibrates without moving aim");
   proto.handleOrientation.call(run, { beta: 20, gamma: 4, timeStamp: 1033 });
   assert(run.aim.x > 0, "landscape gyro tilt pans aim horizontally");
-  const heldTiltAimX = run.aim.x;
-  proto.handleOrientation.call(run, { beta: 20, gamma: 4, timeStamp: 1066 });
-  assert(run.aim.x > heldTiltAimX, "held horizon tilt keeps moving aim without returning to center");
+  const beforeReverse = run.aim.x;
+  proto.handleOrientation.call(run, { beta: 14, gamma: 4, timeStamp: 1066 });
+  assert(run.aim.x < beforeReverse, "reversing tilt direction moves aim back before crossing the center point");
   close(run.aim.y, 0, "unchanged gamma does not pan aim vertically in landscape");
 }
 

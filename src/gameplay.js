@@ -48,16 +48,6 @@
     return Math.sign(rate) * trimmed * lerp(1, acceleration, fastTurn);
   }
 
-  function curveGyroTilt(degrees, settings) {
-    const deadzone = settingNumber(settings, "gyroDeadzone", 0.55);
-    const acceleration = settingNumber(settings, "gyroAcceleration", 1.22);
-    const magnitude = Math.abs(degrees);
-    if (magnitude <= deadzone) return 0;
-    const normalized = clamp((magnitude - deadzone) / 18, 0, 1);
-    const fastTilt = clamp((magnitude - 8) / 22, 0, 1);
-    return Math.sign(degrees) * normalized ** 1.18 * lerp(1, acceleration, fastTilt);
-  }
-
   function shapeMotionAxis(gravity) {
     const deadzone = 0.18;
     const range = 4.8;
@@ -544,8 +534,8 @@
         gamma: event.gamma,
         angle,
       };
-      const tilt = this.mapGyroTilt(event.beta, event.gamma, angle);
-      this.applyGyroTilt(tilt.x, tilt.y, dt);
+      const mapped = this.mapGyroRate(deltaAngle(event.beta, previous.beta) / dt, deltaAngle(event.gamma, previous.gamma) / dt, angle);
+      this.applyGyroRate(mapped.x, mapped.y, dt);
       this.updateGyroUi();
     }
 
@@ -594,25 +584,6 @@
       this.updateGyroUi();
     }
 
-    applyGyroTilt(rawTiltX, rawTiltY, dt) {
-      const safeDt = clamp(dt || 0, 0.008, 0.05);
-      const response = clamp(1 - settingNumber(this.settings, "gyroSmoothing", 0.28), 0.1, 1);
-      const targetX = curveGyroTilt(clamp(rawTiltX, -36, 36), this.settings);
-      const targetY = curveGyroTilt(clamp(rawTiltY, -36, 36), this.settings);
-      this.gyro.filteredX = lerp(this.gyro.filteredX || 0, targetX, response);
-      this.gyro.filteredY = lerp(this.gyro.filteredY || 0, targetY, response);
-
-      const adsScale = lerp(1, settingNumber(this.settings, "gyroAdsMultiplier", 0.58), this.adsAmount);
-      const sensitivity = settingNumber(this.settings, "gyroSensitivity", 0.95);
-      const vertical = settingNumber(this.settings, "gyroVerticalSensitivity", 0.78);
-      const invert = this.settings.invertY ? -1 : 1;
-      const tiltToAim = 0.74;
-      this.aim.x = clamp(this.aim.x + this.gyro.filteredX * safeDt * tiltToAim * sensitivity * adsScale, AIM_BOUNDS.minX, AIM_BOUNDS.maxX);
-      this.aim.y = clamp(this.aim.y + this.gyro.filteredY * safeDt * tiltToAim * sensitivity * vertical * adsScale * invert, AIM_BOUNDS.minY, AIM_BOUNDS.maxY);
-      this.gyro.indicatorX = clamp(this.gyro.filteredX, -1, 1);
-      this.gyro.indicatorY = clamp(this.gyro.filteredY, -1, 1);
-    }
-
     applyGyroRate(rawRateX, rawRateY, dt) {
       const safeDt = clamp(dt || 0, 0.008, 0.05);
       const response = clamp(1 - settingNumber(this.settings, "gyroSmoothing", 0.28), 0.08, 1);
@@ -638,13 +609,6 @@
       if (typeof orientation.angle === "number") return normalizeAngle(orientation.angle);
       if (typeof window.orientation === "number") return normalizeAngle(window.orientation);
       return 0;
-    }
-
-    mapGyroTilt(beta, gamma, angle = this.getScreenAngle()) {
-      const base = this.gyro.calibration || { beta, gamma };
-      const betaDelta = deltaAngle(beta, base.beta);
-      const gammaDelta = deltaAngle(gamma, base.gamma);
-      return this.mapGyroRate(betaDelta, gammaDelta, angle);
     }
 
     mapGyroRate(betaRate, gammaRate, angle = this.getScreenAngle()) {

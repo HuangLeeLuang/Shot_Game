@@ -17,7 +17,7 @@ assert(cachedPaths.includes("src/assets.js"), "service worker caches the asset l
 assert(cachedPaths.includes("assets/app-icon.svg"), "service worker caches the app icon");
 assert(cachedPaths.includes("assets/ai/target-paper-real.png"), "service worker caches AI target assets");
 assert(cachedPaths.includes("assets/ai/weapon-rifle-real.png"), "service worker caches AI weapon assets");
-assert(serviceWorker.includes("shooting-game-v5"), "service worker cache version is bumped for gyro feel fixes");
+assert(serviceWorker.includes("shooting-game-v6"), "service worker cache version is bumped for horizon gyro fixes");
 
 for (const path of cachedPaths) {
   assert(fs.existsSync(path), `cached path exists: ${path}`);

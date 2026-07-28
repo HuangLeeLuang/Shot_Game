@@ -202,7 +202,36 @@ let asyncChecks = Promise.resolve();
   close(run.aim.x, 0, "first gyro event calibrates without moving aim");
   proto.handleOrientation.call(run, { beta: 20, gamma: 4, timeStamp: 1033 });
   assert(run.aim.x > 0, "landscape gyro tilt pans aim horizontally");
+  const heldTiltAimX = run.aim.x;
+  proto.handleOrientation.call(run, { beta: 20, gamma: 4, timeStamp: 1066 });
+  assert(run.aim.x > heldTiltAimX, "held horizon tilt keeps moving aim without returning to center");
   close(run.aim.y, 0, "unchanged gamma does not pan aim vertically in landscape");
+}
+
+{
+  const run = makeRun({
+    gyro: {
+      enabled: true,
+      supported: true,
+      calibration: null,
+      filteredX: 0,
+      filteredY: 0,
+      rateX: 0,
+      rateY: 0,
+      indicatorX: 0,
+      indicatorY: 0,
+      lastOrientation: null,
+      lastMotionAt: 0,
+      motionRateActive: false,
+      lastAt: 0,
+      eventCount: 0,
+      noDataTimer: 0,
+    },
+  });
+  proto.handleOrientation.call(run, { beta: 10, gamma: 4, timeStamp: 1000 });
+  proto.handleMotion.call(run, { rotationRate: { beta: 100, gamma: 0 }, timeStamp: 1016 });
+  proto.handleOrientation.call(run, { beta: 20, gamma: 4, timeStamp: 1033 });
+  assert(run.aim.x > 0, "motion rate data does not force horizon gyro to recenter before moving");
 }
 
 {

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 260" role="img" aria-label="distant sniper target">
+  <defs>
+    <filter id="sniper-shadow" x="-25%" y="-15%" width="150%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="7" flood-color="#000" flood-opacity=".35"/>
+    </filter>
+  </defs>
+  <g filter="url(#sniper-shadow)">
+    <path d="M110 18l88 108-88 108-88-108z" fill="#202428" stroke="#f4f1ea" stroke-width="10" stroke-linejoin="round"/>
+    <path d="M110 45l66 81-66 81-66-81z" fill="#353c41" stroke="#6f7a80" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M110 75l42 51-42 51-42-51z" fill="#15191c" stroke="#f4f1ea" stroke-width="5" stroke-linejoin="round"/>
+    <circle cx="110" cy="126" r="18" fill="#ff9f1c"/>
+    <path d="M110 92v68M76 126h68" stroke="#f4f1ea" stroke-width="5" stroke-linecap="round"/>
+  </g>
+</svg>

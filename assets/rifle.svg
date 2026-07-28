@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 160" role="img" aria-label="rifle silhouette">
+  <defs>
+    <linearGradient id="rifle-body" x1="18" x2="384" y1="54" y2="94" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4a5358"/>
+      <stop offset=".48" stop-color="#1b2024"/>
+      <stop offset="1" stop-color="#111416"/>
+    </linearGradient>
+  </defs>
+  <path d="M21 82h92l28-27h160c22 0 40 15 44 36h44v17H219l-18 20h-80l-24-30H21z" fill="url(#rifle-body)" stroke="#6b7479" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M290 56h74c13 0 24 11 24 24v6h-70c-15 0-27-12-28-27z" fill="#22282c" stroke="#6b7479" stroke-width="6"/>
+  <path d="M172 122h54l-10 30h-46z" fill="#171b1e" stroke="#6b7479" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M104 99l-39 48h57l31-43z" fill="#20262a" stroke="#6b7479" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M198 47h69l10-23h-89z" fill="#252b2f" stroke="#6b7479" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M265 108h92" stroke="#ff9f1c" stroke-width="6" stroke-linecap="round"/>
+</svg>

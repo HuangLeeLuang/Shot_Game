@@ -641,6 +641,7 @@
             <div class="hint-line">${t("controlsHint")}</div>
           </div>
           <div id="scopeNote" class="scope-note">${t("expertImpact")}</div>
+          <div id="gyroIndicator" class="gyro-indicator" aria-hidden="true"><span></span></div>
         </div>
         <button id="mouseLockOverlay" class="mouse-lock-overlay active" type="button" aria-label="${t("lockMouseTitle")}">
           <span>${t("lockMouseTitle")}</span>
@@ -666,6 +667,7 @@
               ${settingRange("masterVolume", lang() === "zh" ? "主音量" : "Master Volume", 0, 1, 0.01, saveData.settings.masterVolume)}
               ${settingRange("mouseSensitivity", lang() === "zh" ? "滑鼠靈敏度" : "Mouse Sensitivity", 0.2, 2.6, 0.05, saveData.settings.mouseSensitivity)}
               ${settingRange("touchSensitivity", lang() === "zh" ? "觸控靈敏度" : "Touch Sensitivity", 0.2, 2.6, 0.05, saveData.settings.touchSensitivity)}
+              ${settingRange("gyroSensitivity", lang() === "zh" ? "陀螺儀靈敏度" : "Gyro Sensitivity", 0.1, 2.8, 0.05, saveData.settings.gyroSensitivity)}
             </div>
           </div>
         </div>
@@ -1044,6 +1046,18 @@
     return Math.max(min, Math.min(max, value));
   }
 
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+    const localFile = window.location.protocol === "file:";
+    if (localFile) return;
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch((error) => {
+        console.warn("Service worker registration failed", error);
+      });
+    });
+  }
+
   bindGlobalEvents();
+  registerServiceWorker();
   render();
 })();

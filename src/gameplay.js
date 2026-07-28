@@ -22,6 +22,19 @@
     return random(low, high);
   }
 
+  function normalizeAngle(angle) {
+    return ((Math.round(angle) % 360) + 360) % 360;
+  }
+
+  function shapeGyroAxis(degrees) {
+    const deadzone = 0.85;
+    const range = 16;
+    const magnitude = Math.abs(degrees);
+    if (magnitude <= deadzone) return 0;
+    const normalized = clamp((magnitude - deadzone) / range, 0, 1);
+    return Math.sign(degrees) * normalized ** 1.18;
+  }
+
   const AIM_BOUNDS = {
     minX: -0.44,
     maxX: 0.44,
@@ -139,8 +152,11 @@
       this.gyro = {
         enabled: false,
         supported: "DeviceOrientationEvent" in window,
-        lastBeta: null,
-        lastGamma: null,
+        permissionAsked: false,
+        calibration: null,
+        filteredX: 0,
+        filteredY: 0,
+        lastAt: 0,
       };
       this.metrics = {
         shots: 0,
@@ -348,7 +364,9 @@
 
     moveAim(dx, dy, source) {
       if (this.paused || this.finished) return;
-      const sensitivity = source === "touch" ? this.settings.touchSensitivity : this.settings.mouseSensitivity;
+      let sensitivity = this.settings.mouseSensitivity;
+      if (source === "touch") sensitivity = this.settings.touchSensitivity;
+      if (source === "gyro") sensitivity = this.settings.gyroSensitivity;
       const adsScale = lerp(1, 0.52 / Math.max(1, this.stats.zoom), this.adsAmount);
       const invert = this.settings.invertY ? -1 : 1;
       this.aim.x = clamp(this.aim.x + (dx * sensitivity * adsScale) / this.width, AIM_BOUNDS.minX, AIM_BOUNDS.maxX);
@@ -375,9 +393,12 @@
           }
         }
         this.gyro.enabled = !this.gyro.enabled;
-        this.gyro.lastBeta = null;
-        this.gyro.lastGamma = null;
-        this.showMessage(this.gyro.enabled ? this.t("gyroOn") : this.t("gyroOff"));
+        this.gyro.calibration = null;
+        this.gyro.filteredX = 0;
+        this.gyro.filteredY = 0;
+        this.gyro.lastAt = 0;
+        this.showMessage(this.gyro.enabled ? this.t("gyroCalibrating") : this.t("gyroOff"), 1400);
+        this.updateGyroUi();
       } catch (error) {
         this.showMessage(this.t("gyroUnsupported"));
       }
@@ -386,16 +407,64 @@
     handleOrientation(event) {
       if (!this.gyro.enabled || this.paused || this.finished) return;
       if (typeof event.beta !== "number" || typeof event.gamma !== "number") return;
-      if (this.gyro.lastBeta == null || this.gyro.lastGamma == null) {
-        this.gyro.lastBeta = event.beta;
-        this.gyro.lastGamma = event.gamma;
+      const angle = this.getScreenAngle();
+      const now = typeof event.timeStamp === "number" && event.timeStamp > 0 ? event.timeStamp : performance.now();
+      if (!this.gyro.calibration || this.gyro.calibration.angle !== angle) {
+        this.gyro.calibration = {
+          beta: event.beta,
+          gamma: event.gamma,
+          angle,
+        };
+        this.gyro.filteredX = 0;
+        this.gyro.filteredY = 0;
+        this.gyro.lastAt = now;
+        this.showMessage(this.t("gyroReady"), 800);
+        this.updateGyroUi();
         return;
       }
-      const dx = (event.gamma - this.gyro.lastGamma) * 4.2 * this.settings.gyroSensitivity;
-      const dy = (event.beta - this.gyro.lastBeta) * 2.4 * this.settings.gyroSensitivity;
-      this.gyro.lastBeta = event.beta;
-      this.gyro.lastGamma = event.gamma;
-      this.moveAim(dx, dy, "touch");
+      const tilt = this.mapGyroTilt(event.beta, event.gamma, angle);
+      const targetX = shapeGyroAxis(tilt.x);
+      const targetY = shapeGyroAxis(tilt.y);
+      this.gyro.filteredX = lerp(this.gyro.filteredX, targetX, 0.24);
+      this.gyro.filteredY = lerp(this.gyro.filteredY, targetY, 0.24);
+
+      const dt = clamp((now - (this.gyro.lastAt || now)) / 1000, 0.008, 0.05);
+      this.gyro.lastAt = now;
+      this.moveAim(this.gyro.filteredX * this.width * 0.78 * dt, this.gyro.filteredY * this.height * 0.78 * dt, "gyro");
+      this.updateGyroUi();
+    }
+
+    getScreenAngle() {
+      const screenRef = window.screen || {};
+      const orientation = screenRef.orientation || {};
+      if (typeof orientation.angle === "number") return normalizeAngle(orientation.angle);
+      if (typeof window.orientation === "number") return normalizeAngle(window.orientation);
+      return 0;
+    }
+
+    mapGyroTilt(beta, gamma, angle = this.getScreenAngle()) {
+      const base = this.gyro.calibration || { beta, gamma };
+      const betaDelta = beta - base.beta;
+      const gammaDelta = gamma - base.gamma;
+      if (angle === 90) return { x: betaDelta, y: -gammaDelta };
+      if (angle === 270) return { x: -betaDelta, y: gammaDelta };
+      if (angle === 180) return { x: -gammaDelta, y: -betaDelta };
+      return { x: gammaDelta, y: betaDelta };
+    }
+
+    updateGyroUi() {
+      const button = document.querySelector("[data-touch-action='gyro']");
+      if (button) {
+        button.classList.toggle("active", this.gyro.enabled);
+        button.textContent = this.gyro.enabled ? "GYR+" : "GYR";
+      }
+      const indicator = document.getElementById("gyroIndicator");
+      if (!indicator) return;
+      indicator.classList.toggle("active", this.gyro.enabled);
+      const dot = indicator.querySelector("span");
+      if (dot) {
+        dot.style.transform = `translate(${this.gyro.filteredX * 18}px, ${this.gyro.filteredY * 18}px)`;
+      }
     }
 
     t(key) {
@@ -772,6 +841,30 @@
       return TARGET_WORLD_BOUNDS[key] || TARGET_WORLD_BOUNDS.range;
     }
 
+    getReachableWorldBounds(now = performance.now()) {
+      const bounds = this.getTargetWorldBounds();
+      const zoom = lerp(1, this.stats.zoom, this.adsAmount);
+      const cross = this.getCrosshairPoint(now);
+      const impact = this.getImpactPoint(cross);
+      const impactOffsetX = (impact.x - cross.x) / (this.width * zoom);
+      const impactOffsetY = (impact.y - cross.y) / (this.height * zoom);
+      const reachable = {
+        minX: Math.max(bounds.minX, 0.5 + impactOffsetX + AIM_BOUNDS.minX),
+        maxX: Math.min(bounds.maxX, 0.5 + impactOffsetX + AIM_BOUNDS.maxX),
+        minY: Math.max(bounds.minY, 0.5 + impactOffsetY + AIM_BOUNDS.minY),
+        maxY: Math.min(bounds.maxY, 0.5 + impactOffsetY + AIM_BOUNDS.maxY),
+      };
+      if (reachable.minX > reachable.maxX) {
+        reachable.minX = bounds.minX;
+        reachable.maxX = bounds.maxX;
+      }
+      if (reachable.minY > reachable.maxY) {
+        reachable.minY = bounds.minY;
+        reachable.maxY = bounds.maxY;
+      }
+      return reachable;
+    }
+
     getFiringAreaRect() {
       const key = this.mode === "test" ? "test" : this.level.id;
       const area = FIRING_AREAS[key] || FIRING_AREAS.range;
@@ -801,8 +894,8 @@
       return { x, y, depthScale };
     }
 
-    clampTargetToReachableArea(target) {
-      const bounds = this.getTargetWorldBounds();
+    clampTargetToReachableArea(target, now = performance.now()) {
+      const bounds = this.getReachableWorldBounds(now);
       target.x = clamp(target.x, bounds.minX, bounds.maxX);
       if (target.type !== "dummy") {
         target.y = clamp(target.y, bounds.minY, bounds.maxY);
@@ -810,8 +903,8 @@
     }
 
     clampTargetToFiringArea(target, now = performance.now()) {
-      this.clampTargetToReachableArea(target);
-      const bounds = this.getTargetWorldBounds();
+      this.clampTargetToReachableArea(target, now);
+      const bounds = this.getReachableWorldBounds(now);
       const zoom = lerp(1, this.stats.zoom, this.adsAmount);
       const cx = this.width / 2;
       const cy = this.height / 2;
@@ -831,7 +924,7 @@
         const maxWorldY = view.y + (rect.bottom - safeSize - cy + handling.y) / (this.height * zoom);
         target.y = minWorldY <= maxWorldY ? clamp(target.y, minWorldY, maxWorldY) : clamp(view.y, bounds.minY, bounds.maxY);
       }
-      this.clampTargetToReachableArea(target);
+      this.clampTargetToReachableArea(target, now);
     }
 
     targetInFiringArea(target, now = performance.now()) {
@@ -964,6 +1057,7 @@
         const active = this.level.id === "sniper" && this.difficulty.id === "expert" && this.mode !== "test";
         note.classList.toggle("active", active);
       }
+      this.updateGyroUi();
     }
 
     draw(now) {
@@ -1105,6 +1199,11 @@
     drawRangeTarget(ctx, screen, steel) {
       ctx.translate(screen.x, screen.y);
       const r = screen.size;
+      const asset = getGameAsset(steel ? "targetSteel" : "targetPaper");
+      if (asset) {
+        drawCenteredImage(ctx, asset, 0, r * 0.12, r * 3.1, r * 3.1);
+        return;
+      }
       ctx.fillStyle = steel ? "#aeb6ba" : "#e8dfce";
       ctx.strokeStyle = "#222";
       ctx.lineWidth = Math.max(2, r * 0.06);
@@ -1128,6 +1227,11 @@
     drawDummy(ctx, screen) {
       ctx.translate(screen.x, screen.y);
       const s = screen.size;
+      const asset = getGameAsset("targetDummy");
+      if (asset) {
+        drawCenteredImage(ctx, asset, 0, s * 0.08, s * 1.65, s * 2.25);
+        return;
+      }
       ctx.fillStyle = "#d8c7aa";
       ctx.strokeStyle = "#1d1b18";
       ctx.lineWidth = Math.max(2, s * 0.05);
@@ -1152,6 +1256,11 @@
       const s = screen.size;
       if (target.behavior === "brief") {
         ctx.globalAlpha *= clamp(target.exposure / 0.8, 0.35, 1);
+      }
+      const asset = getGameAsset("targetSniper");
+      if (asset) {
+        drawCenteredImage(ctx, asset, 0, 0, s * 2.15, s * 2.55);
+        return;
       }
       ctx.fillStyle = "#202428";
       ctx.strokeStyle = "#f4f1ea";
@@ -1191,6 +1300,16 @@
       ctx.save();
       ctx.translate(w * lerp(0.68, 0.52, ads), h * lerp(0.84, 0.8, ads));
       ctx.rotate(lerp(-0.08, -0.02, ads));
+      const assetName = this.weaponId === "sniper" ? "weaponSniper" : this.weaponId === "rifle" ? "weaponRifle" : "weaponPistol";
+      const weaponAsset = getGameAsset(assetName);
+      if (weaponAsset) {
+        const width = this.weaponId === "sniper" ? 300 : this.weaponId === "rifle" ? 246 : 156;
+        const height = this.weaponId === "pistol" ? 78 : 92;
+        ctx.globalAlpha = lerp(1, 0.62, ads);
+        drawCenteredImage(ctx, weaponAsset, width * 0.22, 0, width, height);
+        ctx.restore();
+        return;
+      }
       ctx.fillStyle = "#17191b";
       ctx.strokeStyle = "#595f64";
       ctx.lineWidth = 2;
@@ -1316,6 +1435,14 @@
         document.exitPointerLock();
       }
     }
+  }
+
+  function getGameAsset(id) {
+    return window.GameAssets && window.GameAssets.get ? window.GameAssets.get(id) : null;
+  }
+
+  function drawCenteredImage(ctx, image, x, y, width, height) {
+    ctx.drawImage(image, x - width / 2, y - height / 2, width, height);
   }
 
   function drawPerspectiveGrid(ctx, w, h, horizon, lineColor, floorColor) {

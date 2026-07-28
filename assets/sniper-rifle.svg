@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 170" role="img" aria-label="sniper rifle silhouette">
+  <defs>
+    <linearGradient id="sniper-body" x1="30" x2="462" y1="68" y2="110" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4b555a"/>
+      <stop offset=".5" stop-color="#15191c"/>
+      <stop offset="1" stop-color="#0d0f10"/>
+    </linearGradient>
+  </defs>
+  <path d="M28 101h126l43-37h182c20 0 39 12 47 31h77v18H260l-31 24h-90l-35-30H28z" fill="url(#sniper-body)" stroke="#6b7479" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M248 57h139c14 0 26 11 26 25v13H252z" fill="#22282c" stroke="#6b7479" stroke-width="6"/>
+  <path d="M221 54h91l11-25H207z" fill="#252b2f" stroke="#6b7479" stroke-width="6" stroke-linejoin="round"/>
+  <circle cx="262" cy="39" r="16" fill="#111416" stroke="#6b7479" stroke-width="6"/>
+  <path d="M163 132h64l-15 31h-56z" fill="#171b1e" stroke="#6b7479" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M112 108l-52 52h72l38-47z" fill="#20262a" stroke="#6b7479" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M353 113h133" stroke="#ff9f1c" stroke-width="6" stroke-linecap="round"/>
+</svg>

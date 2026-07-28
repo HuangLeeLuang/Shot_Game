@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Shooting Game icon">
+  <rect width="512" height="512" rx="96" fill="#15191c"/>
+  <circle cx="256" cy="256" r="188" fill="#f4f1ea"/>
+  <circle cx="256" cy="256" r="146" fill="#d43c2f"/>
+  <circle cx="256" cy="256" r="106" fill="#f4f1ea"/>
+  <circle cx="256" cy="256" r="66" fill="#ff9f1c"/>
+  <circle cx="256" cy="256" r="22" fill="#15191c"/>
+  <path d="M256 56v84M256 372v84M56 256h84M372 256h84" stroke="#15191c" stroke-width="24" stroke-linecap="round"/>
+  <path d="M206 328h100c23 0 42-18 42-41 0-19-12-33-31-39l-63-19c-14-4-21-13-21-25 0-15 13-26 31-26h69" fill="none" stroke="#15191c" stroke-width="24" stroke-linecap="round"/>
+</svg>

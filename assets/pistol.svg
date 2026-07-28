@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 150" role="img" aria-label="pistol silhouette">
+  <defs>
+    <linearGradient id="pistol-body" x1="26" x2="266" y1="45" y2="96" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3e464b"/>
+      <stop offset=".55" stop-color="#171b1e"/>
+      <stop offset="1" stop-color="#0f1113"/>
+    </linearGradient>
+  </defs>
+  <path d="M34 61h194c19 0 32 12 32 28v12H102c-9 0-17-4-22-11L63 67H34z" fill="url(#pistol-body)" stroke="#6b7479" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M207 61h59c9 0 16 7 16 16v8h-57c-7 0-13-5-15-12z" fill="#272d31" stroke="#6b7479" stroke-width="5"/>
+  <path d="M103 98h68c-9 15-19 26-31 35h-36z" fill="#101315" stroke="#6b7479" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M92 95l-27 45h50l22-42z" fill="#23282b" stroke="#6b7479" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M111 107c12 4 27 3 43-4" stroke="#ff9f1c" stroke-width="5" stroke-linecap="round"/>
+</svg>

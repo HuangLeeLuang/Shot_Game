@@ -1,0 +1,19 @@
+{
+  "name": "射擊遊戲",
+  "short_name": "射擊遊戲",
+  "description": "固定站位的第一人稱射擊訓練網頁遊戲。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#101214",
+  "theme_color": "#ff9f1c",
+  "icons": [
+    {
+      "src": "assets/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

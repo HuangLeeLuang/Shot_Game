@@ -6,6 +6,12 @@ const context = {
   window: {},
   document: {
     pointerLockElement: null,
+    querySelector() {
+      return null;
+    },
+    getElementById() {
+      return null;
+    },
   },
   console,
   Math,
@@ -21,6 +27,11 @@ context.window = Object.assign(context.window, {
   window: context.window,
   matchMedia() {
     return { matches: true };
+  },
+  screen: {
+    orientation: {
+      angle: 90,
+    },
   },
   console,
   Math,
@@ -42,11 +53,13 @@ function makeRun(overrides = {}) {
     {
       paused: false,
       finished: false,
+      lang: "en",
       width: 1000,
       height: 500,
       settings: {
         mouseSensitivity: 1,
         touchSensitivity: 1,
+        gyroSensitivity: 1,
         invertY: false,
       },
       stats: {
@@ -58,10 +71,19 @@ function makeRun(overrides = {}) {
       adsAmount: 0,
       recoil: { x: 0, y: 0 },
       aim: { x: 0, y: 0 },
+      gyro: {
+        enabled: false,
+        supported: false,
+        calibration: null,
+        filteredX: 0,
+        filteredY: 0,
+        lastAt: 0,
+      },
       level: { id: "range" },
       difficulty: { id: "standard" },
       mode: "level",
       targets: [],
+      showMessage() {},
     },
     overrides,
   );
@@ -131,6 +153,24 @@ function close(actual, expected, label) {
   assert(!proto.hasPointerLock.call(run), "mouse focus is unlocked before pointer lock");
   context.document.pointerLockElement = canvas;
   assert(proto.hasPointerLock.call(run), "mouse focus matches the game after pointer lock");
+}
+
+{
+  const run = makeRun({
+    gyro: {
+      enabled: true,
+      supported: true,
+      calibration: null,
+      filteredX: 0,
+      filteredY: 0,
+      lastAt: 0,
+    },
+  });
+  proto.handleOrientation.call(run, { beta: 10, gamma: 4, timeStamp: 1000 });
+  close(run.aim.x, 0, "first gyro event calibrates without moving aim");
+  proto.handleOrientation.call(run, { beta: 20, gamma: 4, timeStamp: 1033 });
+  assert(run.aim.x > 0, "landscape gyro tilt pans aim horizontally");
+  close(run.aim.y, 0, "unchanged gamma does not pan aim vertically in landscape");
 }
 
 console.log("aim model ok");

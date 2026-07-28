@@ -24,6 +24,7 @@ The first implementation phase prioritizes complete playable flow over polished 
   - 2D target sprites scaled by distance.
   - Depth cues through scale, darkness, blur-like treatment, and motion speed.
 - Save system: browser `localStorage`.
+- Offline play: PWA manifest plus service worker cache for the static app shell and bundled assets.
 - UI language: Traditional Chinese and English, switchable.
 
 ## 3. Art And Audio Direction
@@ -501,5 +502,6 @@ The first playable version is accepted when:
 - Mobile touch controls work at a basic level.
 - Mobile touch layout customization works at a basic level.
 - Mobile landscape prompt works.
+- Mobile offline launch works after the first online visit and cache install.
 
 Polish items such as final art, final sound mix, advanced animations, and balance tuning can improve after this phase.

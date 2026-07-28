@@ -75,7 +75,7 @@
     test: { minX: 0.08, maxX: 0.92, minY: 0.14, maxY: 0.84 },
     range: { minX: 0.1, maxX: 0.9, minY: 0.16, maxY: 0.82 },
     defense: { minX: 0.12, maxX: 0.88, minY: 0.22, maxY: 0.82 },
-    sniper: { minX: 0.14, maxX: 0.86, minY: 0.16, maxY: 0.72 },
+    sniper: { minX: 0.14, maxX: 0.86, minY: 0.38, maxY: 0.7 },
   };
 
   function applyMod(stats, key, factor) {
@@ -1297,6 +1297,13 @@
           ctx.stroke();
         }
       } else if (this.level.id === "defense") {
+        const asset = getGameAsset("levelDefense");
+        if (asset) {
+          drawCoverImage(ctx, asset, 0, 0, w, h);
+          ctx.fillStyle = "rgba(0,0,0,0.08)";
+          ctx.fillRect(0, 0, w, h);
+          return;
+        }
         const wall = ctx.createLinearGradient(0, 0, 0, h);
         wall.addColorStop(0, "#363c40");
         wall.addColorStop(0.48, "#22282c");
@@ -1319,6 +1326,13 @@
         ctx.lineTo(w, h * 0.82);
         ctx.stroke();
       } else {
+        const asset = getGameAsset("levelSniper");
+        if (asset) {
+          drawCoverImage(ctx, asset, 0, 0, w, h);
+          ctx.fillStyle = "rgba(0,0,0,0.06)";
+          ctx.fillRect(0, 0, w, h);
+          return;
+        }
         const sky = ctx.createLinearGradient(0, 0, 0, h);
         sky.addColorStop(0, "#6d858f");
         sky.addColorStop(0.42, "#c2bcae");
@@ -1401,6 +1415,13 @@
     drawDummy(ctx, screen) {
       ctx.translate(screen.x, screen.y);
       const s = screen.size;
+      const human = getGameAsset("targetDefenseHuman");
+      if (human) {
+        const height = s * 2.8;
+        const aspect = human.naturalWidth && human.naturalHeight ? human.naturalWidth / human.naturalHeight : 0.67;
+        drawCenteredImage(ctx, human, 0, -s * 0.08, height * aspect, height);
+        return;
+      }
       const asset = getGameAsset("targetDummy");
       if (asset) {
         drawCenteredImage(ctx, asset, 0, s * 0.08, s * 1.65, s * 2.25);
@@ -1430,6 +1451,13 @@
       const s = screen.size;
       if (target.behavior === "brief") {
         ctx.globalAlpha *= clamp(target.exposure / 0.8, 0.35, 1);
+      }
+      const human = getGameAsset("targetSniperHuman");
+      if (human) {
+        const height = s * 3.05;
+        const aspect = human.naturalWidth && human.naturalHeight ? human.naturalWidth / human.naturalHeight : 0.67;
+        drawCenteredImage(ctx, human, 0, -s * 0.08, height * aspect, height);
+        return;
       }
       const asset = getGameAsset("targetSniper");
       if (asset) {
@@ -1622,6 +1650,25 @@
   function drawCenteredImageByWidth(ctx, image, x, y, width) {
     const aspect = image.naturalHeight && image.naturalWidth ? image.naturalHeight / image.naturalWidth : 1;
     drawCenteredImage(ctx, image, x, y, width, width * aspect);
+  }
+
+  function drawCoverImage(ctx, image, x, y, width, height) {
+    const sourceWidth = image.naturalWidth || image.width || width;
+    const sourceHeight = image.naturalHeight || image.height || height;
+    const sourceAspect = sourceWidth / sourceHeight;
+    const destAspect = width / height;
+    let sx = 0;
+    let sy = 0;
+    let sw = sourceWidth;
+    let sh = sourceHeight;
+    if (sourceAspect > destAspect) {
+      sw = sourceHeight * destAspect;
+      sx = (sourceWidth - sw) / 2;
+    } else {
+      sh = sourceWidth / destAspect;
+      sy = (sourceHeight - sh) / 2;
+    }
+    ctx.drawImage(image, sx, sy, sw, sh, x, y, width, height);
   }
 
   function drawPerspectiveGrid(ctx, w, h, horizon, lineColor, floorColor) {

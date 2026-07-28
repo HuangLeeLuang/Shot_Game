@@ -1,4 +1,4 @@
-const CACHE_NAME = "shooting-game-v7";
+const CACHE_NAME = "shooting-game-v8";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -16,6 +16,10 @@ const APP_SHELL = [
   "./assets/ai/target-steel-real.png",
   "./assets/ai/target-dummy-real.png",
   "./assets/ai/target-sniper-real.png",
+  "./assets/ai/target-defense-human-real.png",
+  "./assets/ai/target-sniper-human-real.png",
+  "./assets/ai/level-defense-real.png",
+  "./assets/ai/level-sniper-real.png",
   "./assets/ai/weapon-pistol-real.png",
   "./assets/ai/weapon-rifle-real.png",
   "./assets/ai/weapon-sniper-real.png",

@@ -21,10 +21,15 @@ const context = {
       return 1000;
     },
   },
+  setTimeout() {
+    return 1;
+  },
+  clearTimeout() {},
 };
 
 context.window = Object.assign(context.window, {
   window: context.window,
+  isSecureContext: true,
   matchMedia() {
     return { matches: true };
   },
@@ -37,6 +42,8 @@ context.window = Object.assign(context.window, {
   Math,
   JSON,
   performance: context.performance,
+  setTimeout: context.setTimeout,
+  clearTimeout: context.clearTimeout,
 });
 
 vm.createContext(context);
@@ -78,6 +85,8 @@ function makeRun(overrides = {}) {
         filteredX: 0,
         filteredY: 0,
         lastAt: 0,
+        eventCount: 0,
+        noDataTimer: 0,
       },
       level: { id: "range" },
       difficulty: { id: "standard" },
@@ -92,6 +101,8 @@ function makeRun(overrides = {}) {
 function close(actual, expected, label) {
   assert(Math.abs(actual - expected) < 0.0001, `${label}: expected ${expected}, got ${actual}`);
 }
+
+let asyncChecks = Promise.resolve();
 
 {
   const run = makeRun();
@@ -164,6 +175,8 @@ function close(actual, expected, label) {
       filteredX: 0,
       filteredY: 0,
       lastAt: 0,
+      eventCount: 0,
+      noDataTimer: 0,
     },
   });
   proto.handleOrientation.call(run, { beta: 10, gamma: 4, timeStamp: 1000 });
@@ -173,4 +186,65 @@ function close(actual, expected, label) {
   close(run.aim.y, 0, "unchanged gamma does not pan aim vertically in landscape");
 }
 
-console.log("aim model ok");
+{
+  let orientationAsked = false;
+  let motionAsked = false;
+  context.window.DeviceOrientationEvent = {
+    requestPermission() {
+      orientationAsked = true;
+      return Promise.resolve("granted");
+    },
+  };
+  context.window.DeviceMotionEvent = {
+    requestPermission() {
+      motionAsked = true;
+      return Promise.resolve("granted");
+    },
+  };
+  const run = makeRun({
+    gyro: {
+      enabled: false,
+      supported: true,
+      permissionAsked: false,
+      calibration: null,
+      filteredX: 0,
+      filteredY: 0,
+      lastAt: 0,
+      eventCount: 0,
+      noDataTimer: 0,
+    },
+  });
+  asyncChecks = Promise.resolve(proto.toggleGyro.call(run)).then(() => {
+    assert(orientationAsked, "iPhone orientation permission is requested");
+    assert(motionAsked, "iPhone motion permission is requested");
+    assert(run.gyro.enabled, "gyro enables after permissions are granted");
+  });
+}
+
+{
+  context.window.DeviceOrientationEvent = undefined;
+  context.window.DeviceMotionEvent = undefined;
+  const run = makeRun({
+    gyro: {
+      enabled: true,
+      supported: true,
+      calibration: null,
+      filteredX: 0,
+      filteredY: 0,
+      lastAt: 1000,
+      eventCount: 0,
+      noDataTimer: 0,
+    },
+  });
+  proto.handleMotion.call(run, { accelerationIncludingGravity: { x: 4, y: 0 }, timeStamp: 1033 });
+  assert(run.aim.y > 0, "motion fallback can pan aim when orientation events do not arrive");
+}
+
+asyncChecks
+  .then(() => {
+    console.log("aim model ok");
+  })
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

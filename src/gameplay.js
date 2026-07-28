@@ -35,6 +35,15 @@
     return Math.sign(degrees) * normalized ** 1.18;
   }
 
+  function shapeMotionAxis(gravity) {
+    const deadzone = 0.18;
+    const range = 4.8;
+    const magnitude = Math.abs(gravity);
+    if (magnitude <= deadzone) return 0;
+    const normalized = clamp((magnitude - deadzone) / range, 0, 1);
+    return Math.sign(gravity) * normalized ** 1.12;
+  }
+
   const AIM_BOUNDS = {
     minX: -0.44,
     maxX: 0.44,
@@ -151,12 +160,14 @@
       this.decals = [];
       this.gyro = {
         enabled: false,
-        supported: "DeviceOrientationEvent" in window,
+        supported: "DeviceOrientationEvent" in window || "DeviceMotionEvent" in window,
         permissionAsked: false,
         calibration: null,
         filteredX: 0,
         filteredY: 0,
         lastAt: 0,
+        eventCount: 0,
+        noDataTimer: 0,
       };
       this.metrics = {
         shots: 0,
@@ -304,6 +315,21 @@
 
       document.querySelectorAll("[data-touch-action]").forEach((button) => {
         const action = button.dataset.touchAction;
+        if (action === "gyro") {
+          let lastToggleAt = 0;
+          const toggleFromClick = (event) => {
+            event.preventDefault();
+            this.touchMode = true;
+            this.updateMouseLockOverlay();
+            const now = performance.now();
+            if (now - lastToggleAt < 350) return;
+            lastToggleAt = now;
+            this.toggleGyro();
+          };
+          button.addEventListener("click", toggleFromClick);
+          this.cleanup.push(() => button.removeEventListener("click", toggleFromClick));
+          return;
+        }
         const down = (event) => {
           event.preventDefault();
           if (action === "shoot") {
@@ -312,7 +338,6 @@
           }
           if (action === "ads") this.adsHeld = true;
           if (action === "reload") this.reload();
-          if (action === "gyro") this.toggleGyro();
           if (action === "pause") this.options.onPauseRequest();
         };
         const up = (event) => {
@@ -329,8 +354,11 @@
       });
 
       const onOrientation = (event) => this.handleOrientation(event);
+      const onMotion = (event) => this.handleMotion(event);
       window.addEventListener("deviceorientation", onOrientation);
+      window.addEventListener("devicemotion", onMotion);
       this.cleanup.push(() => window.removeEventListener("deviceorientation", onOrientation));
+      this.cleanup.push(() => window.removeEventListener("devicemotion", onMotion));
     }
 
     tryPointerLock() {
@@ -378,35 +406,68 @@
         this.showMessage(this.t("gyroUnsupported"));
         return;
       }
+      if (window.isSecureContext === false) {
+        this.showMessage(this.t("gyroNeedHttps"), 2400);
+        return;
+      }
       try {
-        const DeviceOrientationEventRef = window.DeviceOrientationEvent;
-        if (
-          DeviceOrientationEventRef &&
-          typeof DeviceOrientationEventRef.requestPermission === "function" &&
-          !this.gyro.permissionAsked
-        ) {
+        if (!this.gyro.permissionAsked) {
+          const granted = await this.requestGyroPermission();
           this.gyro.permissionAsked = true;
-          const result = await DeviceOrientationEventRef.requestPermission();
-          if (result !== "granted") {
-            this.showMessage(this.t("gyroUnsupported"));
-            return;
-          }
+          if (!granted) return;
         }
         this.gyro.enabled = !this.gyro.enabled;
         this.gyro.calibration = null;
         this.gyro.filteredX = 0;
         this.gyro.filteredY = 0;
         this.gyro.lastAt = 0;
+        this.gyro.eventCount = 0;
+        this.clearGyroNoDataTimer();
         this.showMessage(this.gyro.enabled ? this.t("gyroCalibrating") : this.t("gyroOff"), 1400);
+        if (this.gyro.enabled) this.startGyroNoDataTimer();
         this.updateGyroUi();
       } catch (error) {
-        this.showMessage(this.t("gyroUnsupported"));
+        this.showMessage(this.t(error && error.name === "NotAllowedError" ? "gyroPermissionDenied" : "gyroUnsupported"), 2600);
       }
+    }
+
+    async requestGyroPermission() {
+      const requests = [];
+      const DeviceOrientationEventRef = window.DeviceOrientationEvent;
+      const DeviceMotionEventRef = window.DeviceMotionEvent;
+      if (DeviceOrientationEventRef && typeof DeviceOrientationEventRef.requestPermission === "function") {
+        requests.push(DeviceOrientationEventRef.requestPermission());
+      }
+      if (DeviceMotionEventRef && typeof DeviceMotionEventRef.requestPermission === "function") {
+        requests.push(DeviceMotionEventRef.requestPermission());
+      }
+      if (requests.length === 0) return true;
+      const results = await Promise.all(requests);
+      const granted = results.every((result) => result === "granted");
+      if (!granted) this.showMessage(this.t("gyroPermissionDenied"), 2800);
+      return granted;
+    }
+
+    startGyroNoDataTimer() {
+      this.clearGyroNoDataTimer();
+      this.gyro.noDataTimer = window.setTimeout(() => {
+        if (this.gyro.enabled && this.gyro.eventCount === 0) {
+          this.showMessage(this.t("gyroNoData"), 3200);
+        }
+      }, 1800);
+    }
+
+    clearGyroNoDataTimer() {
+      if (!this.gyro.noDataTimer) return;
+      window.clearTimeout(this.gyro.noDataTimer);
+      this.gyro.noDataTimer = 0;
     }
 
     handleOrientation(event) {
       if (!this.gyro.enabled || this.paused || this.finished) return;
       if (typeof event.beta !== "number" || typeof event.gamma !== "number") return;
+      this.gyro.eventCount += 1;
+      this.clearGyroNoDataTimer();
       const angle = this.getScreenAngle();
       const now = typeof event.timeStamp === "number" && event.timeStamp > 0 ? event.timeStamp : performance.now();
       if (!this.gyro.calibration || this.gyro.calibration.angle !== angle) {
@@ -434,6 +495,26 @@
       this.updateGyroUi();
     }
 
+    handleMotion(event) {
+      if (!this.gyro.enabled || this.paused || this.finished) return;
+      const gravity = event.accelerationIncludingGravity;
+      if (!gravity) return;
+      if (typeof gravity.x !== "number" || typeof gravity.y !== "number") return;
+      if (this.gyro.eventCount > 0) return;
+      const angle = this.getScreenAngle();
+      const now = typeof event.timeStamp === "number" && event.timeStamp > 0 ? event.timeStamp : performance.now();
+      const tilt = this.mapMotionTilt(gravity.x, gravity.y, angle);
+      const targetX = shapeMotionAxis(tilt.x);
+      const targetY = shapeMotionAxis(tilt.y);
+      this.gyro.filteredX = lerp(this.gyro.filteredX, targetX, 0.2);
+      this.gyro.filteredY = lerp(this.gyro.filteredY, targetY, 0.2);
+      const dt = clamp((now - (this.gyro.lastAt || now)) / 1000, 0.008, 0.05);
+      this.gyro.lastAt = now;
+      this.clearGyroNoDataTimer();
+      this.moveAim(this.gyro.filteredX * this.width * 0.62 * dt, this.gyro.filteredY * this.height * 0.62 * dt, "gyro");
+      this.updateGyroUi();
+    }
+
     getScreenAngle() {
       const screenRef = window.screen || {};
       const orientation = screenRef.orientation || {};
@@ -450,6 +531,13 @@
       if (angle === 270) return { x: -betaDelta, y: gammaDelta };
       if (angle === 180) return { x: -gammaDelta, y: -betaDelta };
       return { x: gammaDelta, y: betaDelta };
+    }
+
+    mapMotionTilt(x, y, angle = this.getScreenAngle()) {
+      if (angle === 90) return { x: -y, y: x };
+      if (angle === 270) return { x: y, y: -x };
+      if (angle === 180) return { x: -x, y: -y };
+      return { x, y };
     }
 
     updateGyroUi() {
@@ -1429,6 +1517,7 @@
 
     destroy() {
       cancelAnimationFrame(this.raf);
+      this.clearGyroNoDataTimer();
       this.cleanup.forEach((fn) => fn());
       this.cleanup = [];
       if (document.pointerLockElement === this.canvas && document.exitPointerLock) {

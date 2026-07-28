@@ -12,6 +12,10 @@ https://huangleeluang.github.io/Shot_Game/
 
 手機第一次開啟線上版後，瀏覽器會安裝離線快取。之後可用「加入主畫面」作為全螢幕網頁 App 遊玩，已快取的版本可在離線時開啟。
 
+## iPhone 陀螺儀
+
+iPhone / Safari 需要在 HTTPS 線上版中點擊遊戲內的 `GYR` 按鈕，並允許動作與方向權限。若按下後仍沒有反應，請確認 iPhone 的 Safari 動作與方向存取沒有被系統設定關閉。
+
 ## 已包含
 
 - 主選單。

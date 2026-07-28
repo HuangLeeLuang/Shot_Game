@@ -374,7 +374,15 @@
       return `
         ${settingRange("mouseSensitivity", lang() === "zh" ? "滑鼠靈敏度" : "Mouse Sensitivity", 0.2, 2.6, 0.05, s.mouseSensitivity)}
         ${settingRange("touchSensitivity", lang() === "zh" ? "觸控靈敏度" : "Touch Sensitivity", 0.2, 2.6, 0.05, s.touchSensitivity)}
-        ${settingRange("gyroSensitivity", lang() === "zh" ? "陀螺儀靈敏度" : "Gyro Sensitivity", 0.1, 2.4, 0.05, s.gyroSensitivity)}
+        <div class="settings-group">
+          <h3>${lang() === "zh" ? "陀螺儀" : "Gyro"}</h3>
+          ${settingRange("gyroSensitivity", lang() === "zh" ? "總靈敏度" : "Sensitivity", 0.2, 3.2, 0.05, s.gyroSensitivity)}
+          ${settingRange("gyroVerticalSensitivity", lang() === "zh" ? "垂直比例" : "Vertical Ratio", 0.35, 1.5, 0.05, s.gyroVerticalSensitivity)}
+          ${settingRange("gyroAdsMultiplier", lang() === "zh" ? "開鏡倍率" : "ADS Multiplier", 0.25, 1, 0.05, s.gyroAdsMultiplier)}
+          ${settingRange("gyroSmoothing", lang() === "zh" ? "平滑" : "Smoothing", 0, 0.85, 0.01, s.gyroSmoothing)}
+          ${settingRange("gyroDeadzone", lang() === "zh" ? "死區" : "Deadzone", 0, 4, 0.05, s.gyroDeadzone)}
+          ${settingRange("gyroAcceleration", lang() === "zh" ? "快速轉動加速" : "Fast Turn Accel", 1, 2.2, 0.05, s.gyroAcceleration)}
+        </div>
         <div class="form-row">
           <label><input type="checkbox" data-setting="invertY" ${s.invertY ? "checked" : ""} /> ${lang() === "zh" ? "反轉 Y 軸" : "Invert Y Axis"}</label>
         </div>
@@ -667,7 +675,8 @@
               ${settingRange("masterVolume", lang() === "zh" ? "主音量" : "Master Volume", 0, 1, 0.01, saveData.settings.masterVolume)}
               ${settingRange("mouseSensitivity", lang() === "zh" ? "滑鼠靈敏度" : "Mouse Sensitivity", 0.2, 2.6, 0.05, saveData.settings.mouseSensitivity)}
               ${settingRange("touchSensitivity", lang() === "zh" ? "觸控靈敏度" : "Touch Sensitivity", 0.2, 2.6, 0.05, saveData.settings.touchSensitivity)}
-              ${settingRange("gyroSensitivity", lang() === "zh" ? "陀螺儀靈敏度" : "Gyro Sensitivity", 0.1, 2.8, 0.05, saveData.settings.gyroSensitivity)}
+              ${settingRange("gyroSensitivity", lang() === "zh" ? "陀螺儀靈敏度" : "Gyro Sensitivity", 0.2, 3.2, 0.05, saveData.settings.gyroSensitivity)}
+              ${settingRange("gyroAdsMultiplier", lang() === "zh" ? "陀螺儀開鏡倍率" : "Gyro ADS Multiplier", 0.25, 1, 0.05, saveData.settings.gyroAdsMultiplier)}
             </div>
           </div>
         </div>

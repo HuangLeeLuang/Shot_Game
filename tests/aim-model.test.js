@@ -67,6 +67,11 @@ function makeRun(overrides = {}) {
         mouseSensitivity: 1,
         touchSensitivity: 1,
         gyroSensitivity: 1,
+        gyroVerticalSensitivity: 1,
+        gyroAdsMultiplier: 0.6,
+        gyroSmoothing: 0.28,
+        gyroDeadzone: 0.55,
+        gyroAcceleration: 1.22,
         invertY: false,
       },
       stats: {
@@ -84,6 +89,13 @@ function makeRun(overrides = {}) {
         calibration: null,
         filteredX: 0,
         filteredY: 0,
+        rateX: 0,
+        rateY: 0,
+        indicatorX: 0,
+        indicatorY: 0,
+        lastOrientation: null,
+        lastMotionAt: 0,
+        motionRateActive: false,
         lastAt: 0,
         eventCount: 0,
         noDataTimer: 0,
@@ -174,6 +186,13 @@ let asyncChecks = Promise.resolve();
       calibration: null,
       filteredX: 0,
       filteredY: 0,
+      rateX: 0,
+      rateY: 0,
+      indicatorX: 0,
+      indicatorY: 0,
+      lastOrientation: null,
+      lastMotionAt: 0,
+      motionRateActive: false,
       lastAt: 0,
       eventCount: 0,
       noDataTimer: 0,
@@ -209,6 +228,13 @@ let asyncChecks = Promise.resolve();
       calibration: null,
       filteredX: 0,
       filteredY: 0,
+      rateX: 0,
+      rateY: 0,
+      indicatorX: 0,
+      indicatorY: 0,
+      lastOrientation: null,
+      lastMotionAt: 0,
+      motionRateActive: false,
       lastAt: 0,
       eventCount: 0,
       noDataTimer: 0,
@@ -231,6 +257,13 @@ let asyncChecks = Promise.resolve();
       calibration: null,
       filteredX: 0,
       filteredY: 0,
+      rateX: 0,
+      rateY: 0,
+      indicatorX: 0,
+      indicatorY: 0,
+      lastOrientation: null,
+      lastMotionAt: 0,
+      motionRateActive: false,
       lastAt: 1000,
       eventCount: 0,
       noDataTimer: 0,
@@ -238,6 +271,32 @@ let asyncChecks = Promise.resolve();
   });
   proto.handleMotion.call(run, { accelerationIncludingGravity: { x: 4, y: 0 }, timeStamp: 1033 });
   assert(run.aim.y > 0, "motion fallback can pan aim when orientation events do not arrive");
+}
+
+{
+  const run = makeRun({
+    gyro: {
+      enabled: true,
+      supported: true,
+      calibration: null,
+      filteredX: 0,
+      filteredY: 0,
+      rateX: 0,
+      rateY: 0,
+      indicatorX: 0,
+      indicatorY: 0,
+      lastOrientation: null,
+      lastMotionAt: 0,
+      motionRateActive: false,
+      lastAt: 1000,
+      eventCount: 0,
+      noDataTimer: 0,
+    },
+  });
+  proto.handleMotion.call(run, { rotationRate: { beta: 120, gamma: 0 }, timeStamp: 1033 });
+  assert(run.aim.x > 0, "rotation rate gyro pans aim horizontally in landscape");
+  close(run.aim.y, 0, "zero gamma rotation keeps vertical aim steady in landscape");
+  assert(run.gyro.motionRateActive, "rotation rate source is preferred after motion data arrives");
 }
 
 asyncChecks

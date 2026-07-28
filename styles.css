@@ -243,6 +243,19 @@ label {
   line-height: 1.45;
 }
 
+.settings-group {
+  margin: 2px 0 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.settings-group h3 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
 .card-button {
   text-align: left;
   width: 100%;

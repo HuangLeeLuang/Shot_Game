@@ -26,13 +26,26 @@
     return ((Math.round(angle) % 360) + 360) % 360;
   }
 
-  function shapeGyroAxis(degrees) {
-    const deadzone = 0.85;
-    const range = 16;
-    const magnitude = Math.abs(degrees);
+  function settingNumber(settings, key, fallback) {
+    const value = Number(settings && settings[key]);
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  function deltaAngle(current, previous) {
+    let delta = current - previous;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+    return clamp(delta, -18, 18);
+  }
+
+  function curveGyroRate(rate, settings) {
+    const deadzone = settingNumber(settings, "gyroDeadzone", 0.55);
+    const acceleration = settingNumber(settings, "gyroAcceleration", 1.22);
+    const magnitude = Math.abs(rate);
     if (magnitude <= deadzone) return 0;
-    const normalized = clamp((magnitude - deadzone) / range, 0, 1);
-    return Math.sign(degrees) * normalized ** 1.18;
+    const trimmed = magnitude - deadzone;
+    const fastTurn = clamp((trimmed - 35) / 160, 0, 1);
+    return Math.sign(rate) * trimmed * lerp(1, acceleration, fastTurn);
   }
 
   function shapeMotionAxis(gravity) {
@@ -165,6 +178,13 @@
         calibration: null,
         filteredX: 0,
         filteredY: 0,
+        rateX: 0,
+        rateY: 0,
+        indicatorX: 0,
+        indicatorY: 0,
+        lastOrientation: null,
+        lastMotionAt: 0,
+        motionRateActive: false,
         lastAt: 0,
         eventCount: 0,
         noDataTimer: 0,
@@ -401,6 +421,21 @@
       this.aim.y = clamp(this.aim.y + (dy * sensitivity * adsScale * invert) / this.height, AIM_BOUNDS.minY, AIM_BOUNDS.maxY);
     }
 
+    resetGyroTracking() {
+      this.gyro.calibration = null;
+      this.gyro.filteredX = 0;
+      this.gyro.filteredY = 0;
+      this.gyro.rateX = 0;
+      this.gyro.rateY = 0;
+      this.gyro.indicatorX = 0;
+      this.gyro.indicatorY = 0;
+      this.gyro.lastOrientation = null;
+      this.gyro.lastMotionAt = 0;
+      this.gyro.motionRateActive = false;
+      this.gyro.lastAt = 0;
+      this.gyro.eventCount = 0;
+    }
+
     async toggleGyro() {
       if (!this.gyro.supported) {
         this.showMessage(this.t("gyroUnsupported"));
@@ -417,11 +452,7 @@
           if (!granted) return;
         }
         this.gyro.enabled = !this.gyro.enabled;
-        this.gyro.calibration = null;
-        this.gyro.filteredX = 0;
-        this.gyro.filteredY = 0;
-        this.gyro.lastAt = 0;
-        this.gyro.eventCount = 0;
+        this.resetGyroTracking();
         this.clearGyroNoDataTimer();
         this.showMessage(this.gyro.enabled ? this.t("gyroCalibrating") : this.t("gyroOff"), 1400);
         if (this.gyro.enabled) this.startGyroNoDataTimer();
@@ -466,53 +497,112 @@
     handleOrientation(event) {
       if (!this.gyro.enabled || this.paused || this.finished) return;
       if (typeof event.beta !== "number" || typeof event.gamma !== "number") return;
-      this.gyro.eventCount += 1;
-      this.clearGyroNoDataTimer();
       const angle = this.getScreenAngle();
       const now = typeof event.timeStamp === "number" && event.timeStamp > 0 ? event.timeStamp : performance.now();
-      if (!this.gyro.calibration || this.gyro.calibration.angle !== angle) {
+
+      if (this.gyro.motionRateActive && now - this.gyro.lastMotionAt < 240) return;
+
+      this.gyro.eventCount += 1;
+      this.clearGyroNoDataTimer();
+
+      const previous = this.gyro.lastOrientation;
+      if (!previous || previous.angle !== angle) {
         this.gyro.calibration = {
+          beta: event.beta,
+          gamma: event.gamma,
+          angle,
+        };
+        this.gyro.lastOrientation = {
           beta: event.beta,
           gamma: event.gamma,
           angle,
         };
         this.gyro.filteredX = 0;
         this.gyro.filteredY = 0;
+        this.gyro.rateX = 0;
+        this.gyro.rateY = 0;
+        this.gyro.indicatorX = 0;
+        this.gyro.indicatorY = 0;
         this.gyro.lastAt = now;
         this.showMessage(this.t("gyroReady"), 800);
         this.updateGyroUi();
         return;
       }
-      const tilt = this.mapGyroTilt(event.beta, event.gamma, angle);
-      const targetX = shapeGyroAxis(tilt.x);
-      const targetY = shapeGyroAxis(tilt.y);
-      this.gyro.filteredX = lerp(this.gyro.filteredX, targetX, 0.24);
-      this.gyro.filteredY = lerp(this.gyro.filteredY, targetY, 0.24);
 
       const dt = clamp((now - (this.gyro.lastAt || now)) / 1000, 0.008, 0.05);
       this.gyro.lastAt = now;
-      this.moveAim(this.gyro.filteredX * this.width * 0.78 * dt, this.gyro.filteredY * this.height * 0.78 * dt, "gyro");
+      this.gyro.lastOrientation = {
+        beta: event.beta,
+        gamma: event.gamma,
+        angle,
+      };
+      const mapped = this.mapGyroRate(deltaAngle(event.beta, previous.beta) / dt, deltaAngle(event.gamma, previous.gamma) / dt, angle);
+      this.applyGyroRate(mapped.x, mapped.y, dt);
       this.updateGyroUi();
     }
 
     handleMotion(event) {
       if (!this.gyro.enabled || this.paused || this.finished) return;
+      const now = typeof event.timeStamp === "number" && event.timeStamp > 0 ? event.timeStamp : performance.now();
+      const angle = this.getScreenAngle();
+      const rotation = event.rotationRate;
+      if (rotation && (typeof rotation.beta === "number" || typeof rotation.gamma === "number")) {
+        this.gyro.eventCount += 1;
+        this.clearGyroNoDataTimer();
+        const dt = clamp((now - (this.gyro.lastAt || now)) / 1000, 0.008, 0.05);
+        this.gyro.lastAt = now;
+        this.gyro.lastMotionAt = now;
+        this.gyro.motionRateActive = true;
+        this.gyro.lastOrientation = null;
+        const mapped = this.mapGyroRate(Number(rotation.beta) || 0, Number(rotation.gamma) || 0, angle);
+        this.applyGyroRate(mapped.x, mapped.y, dt);
+        this.updateGyroUi();
+        return;
+      }
+
       const gravity = event.accelerationIncludingGravity;
       if (!gravity) return;
       if (typeof gravity.x !== "number" || typeof gravity.y !== "number") return;
-      if (this.gyro.eventCount > 0) return;
-      const angle = this.getScreenAngle();
-      const now = typeof event.timeStamp === "number" && event.timeStamp > 0 ? event.timeStamp : performance.now();
+      if (this.gyro.lastOrientation) return;
+      if (this.gyro.motionRateActive && now - this.gyro.lastMotionAt < 500) return;
+      this.gyro.eventCount += 1;
+      this.clearGyroNoDataTimer();
       const tilt = this.mapMotionTilt(gravity.x, gravity.y, angle);
       const targetX = shapeMotionAxis(tilt.x);
       const targetY = shapeMotionAxis(tilt.y);
-      this.gyro.filteredX = lerp(this.gyro.filteredX, targetX, 0.2);
-      this.gyro.filteredY = lerp(this.gyro.filteredY, targetY, 0.2);
+      const response = clamp(1 - settingNumber(this.settings, "gyroSmoothing", 0.28), 0.08, 1) * 0.36;
+      this.gyro.filteredX = lerp(this.gyro.filteredX, targetX, response);
+      this.gyro.filteredY = lerp(this.gyro.filteredY, targetY, response);
       const dt = clamp((now - (this.gyro.lastAt || now)) / 1000, 0.008, 0.05);
       this.gyro.lastAt = now;
-      this.clearGyroNoDataTimer();
-      this.moveAim(this.gyro.filteredX * this.width * 0.62 * dt, this.gyro.filteredY * this.height * 0.62 * dt, "gyro");
+      const adsScale = lerp(1, settingNumber(this.settings, "gyroAdsMultiplier", 0.58), this.adsAmount);
+      const sensitivity = settingNumber(this.settings, "gyroSensitivity", 0.95);
+      const vertical = settingNumber(this.settings, "gyroVerticalSensitivity", 0.78);
+      const invert = this.settings.invertY ? -1 : 1;
+      this.aim.x = clamp(this.aim.x + this.gyro.filteredX * 0.62 * dt * sensitivity * adsScale, AIM_BOUNDS.minX, AIM_BOUNDS.maxX);
+      this.aim.y = clamp(this.aim.y + this.gyro.filteredY * 0.62 * dt * sensitivity * vertical * adsScale * invert, AIM_BOUNDS.minY, AIM_BOUNDS.maxY);
+      this.gyro.indicatorX = this.gyro.filteredX;
+      this.gyro.indicatorY = this.gyro.filteredY;
       this.updateGyroUi();
+    }
+
+    applyGyroRate(rawRateX, rawRateY, dt) {
+      const safeDt = clamp(dt || 0, 0.008, 0.05);
+      const response = clamp(1 - settingNumber(this.settings, "gyroSmoothing", 0.28), 0.08, 1);
+      const xRate = curveGyroRate(clamp(rawRateX, -420, 420), this.settings);
+      const yRate = curveGyroRate(clamp(rawRateY, -420, 420), this.settings);
+      this.gyro.rateX = lerp(this.gyro.rateX || 0, xRate, response);
+      this.gyro.rateY = lerp(this.gyro.rateY || 0, yRate, response);
+
+      const adsScale = lerp(1, settingNumber(this.settings, "gyroAdsMultiplier", 0.58), this.adsAmount);
+      const sensitivity = settingNumber(this.settings, "gyroSensitivity", 0.95);
+      const vertical = settingNumber(this.settings, "gyroVerticalSensitivity", 0.78);
+      const invert = this.settings.invertY ? -1 : 1;
+      const rateToAim = 0.0108;
+      this.aim.x = clamp(this.aim.x + this.gyro.rateX * safeDt * rateToAim * sensitivity * adsScale, AIM_BOUNDS.minX, AIM_BOUNDS.maxX);
+      this.aim.y = clamp(this.aim.y + this.gyro.rateY * safeDt * rateToAim * sensitivity * vertical * adsScale * invert, AIM_BOUNDS.minY, AIM_BOUNDS.maxY);
+      this.gyro.indicatorX = clamp(this.gyro.rateX / 150, -1, 1);
+      this.gyro.indicatorY = clamp(this.gyro.rateY / 150, -1, 1);
     }
 
     getScreenAngle() {
@@ -523,14 +613,11 @@
       return 0;
     }
 
-    mapGyroTilt(beta, gamma, angle = this.getScreenAngle()) {
-      const base = this.gyro.calibration || { beta, gamma };
-      const betaDelta = beta - base.beta;
-      const gammaDelta = gamma - base.gamma;
-      if (angle === 90) return { x: betaDelta, y: -gammaDelta };
-      if (angle === 270) return { x: -betaDelta, y: gammaDelta };
-      if (angle === 180) return { x: -gammaDelta, y: -betaDelta };
-      return { x: gammaDelta, y: betaDelta };
+    mapGyroRate(betaRate, gammaRate, angle = this.getScreenAngle()) {
+      if (angle === 90) return { x: betaRate, y: -gammaRate };
+      if (angle === 270) return { x: -betaRate, y: gammaRate };
+      if (angle === 180) return { x: -gammaRate, y: -betaRate };
+      return { x: gammaRate, y: betaRate };
     }
 
     mapMotionTilt(x, y, angle = this.getScreenAngle()) {
@@ -551,7 +638,7 @@
       indicator.classList.toggle("active", this.gyro.enabled);
       const dot = indicator.querySelector("span");
       if (dot) {
-        dot.style.transform = `translate(${this.gyro.filteredX * 18}px, ${this.gyro.filteredY * 18}px)`;
+        dot.style.transform = `translate(${(this.gyro.indicatorX || 0) * 18}px, ${(this.gyro.indicatorY || 0) * 18}px)`;
       }
     }
 

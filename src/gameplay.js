@@ -31,6 +31,10 @@
     return Number.isFinite(value) ? value : fallback;
   }
 
+  function settingEnabled(settings, key) {
+    return !settings || settings[key] !== false;
+  }
+
   function deltaAngle(current, previous) {
     let delta = current - previous;
     if (delta > 180) delta -= 360;
@@ -896,7 +900,9 @@
       const recoil = this.stats.recoil * adsReduction;
       this.recoil.x += random(-0.42, 0.42) * recoil;
       this.recoil.y -= random(0.62, 1.05) * recoil;
-      this.shake += recoil * 0.08 * this.settings.screenShake;
+      if (settingEnabled(this.settings, "screenShakeEnabled")) {
+        this.shake += recoil * 0.08 * this.settings.screenShake;
+      }
 
       if (hit) {
         this.registerHit(hit.target, hit.weak, now, impact);
@@ -979,8 +985,8 @@
     }
 
     getHandlingShift(now) {
-      const swayAmp = this.stats.sway * lerp(1, 0.36, this.adsAmount);
-      const spreadAmp = this.stats.spread * lerp(1, 0.42, this.adsAmount);
+      const swayAmp = settingEnabled(this.settings, "swayEnabled") ? this.stats.sway * lerp(1, 0.36, this.adsAmount) : 0;
+      const spreadAmp = settingEnabled(this.settings, "spreadDriftEnabled") ? this.stats.spread * lerp(1, 0.42, this.adsAmount) : 0;
       const phase = now / 1000;
       const swayX = Math.sin(phase * 1.35) * swayAmp + Math.sin(phase * 2.3) * spreadAmp * 0.08;
       const swayY = Math.cos(phase * 1.1) * swayAmp * 0.65;
@@ -991,7 +997,7 @@
     }
 
     getImpactPoint(cross) {
-      const expertSniper = this.level.id === "sniper" && this.difficulty.id === "expert" && this.mode !== "test";
+      const expertSniper = settingEnabled(this.settings, "expertBallisticsEnabled") && this.level.id === "sniper" && this.difficulty.id === "expert" && this.mode !== "test";
       if (!expertSniper) return cross;
       const wind = 18 + this.stats.zoom * 4;
       const drop = 16 + Math.max(0, 2.8 - this.stats.damage) * 8;
@@ -1227,7 +1233,7 @@
       set("hudMessage", now < this.messageUntil ? this.message : "");
       const note = document.getElementById("scopeNote");
       if (note) {
-        const active = this.level.id === "sniper" && this.difficulty.id === "expert" && this.mode !== "test";
+        const active = settingEnabled(this.settings, "expertBallisticsEnabled") && this.level.id === "sniper" && this.difficulty.id === "expert" && this.mode !== "test";
         note.classList.toggle("active", active);
       }
       this.updateGyroUi();
@@ -1237,8 +1243,9 @@
       const ctx = this.ctx;
       ctx.save();
       ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-      const shakeX = random(-this.shake, this.shake);
-      const shakeY = random(-this.shake, this.shake);
+      const shakeAmount = settingEnabled(this.settings, "screenShakeEnabled") ? this.shake : 0;
+      const shakeX = random(-shakeAmount, shakeAmount);
+      const shakeY = random(-shakeAmount, shakeAmount);
       ctx.translate(shakeX, shakeY);
       this.drawBackground(ctx);
       this.drawDecals(ctx);

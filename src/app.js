@@ -418,6 +418,10 @@
             <option value="ring" ${s.crosshair === "ring" ? "selected" : ""}>${lang() === "zh" ? "圓環" : "Ring"}</option>
           </select>
         </div>
+        ${settingToggle("swayEnabled", lang() === "zh" ? "自動晃動" : "Weapon Sway", s.swayEnabled)}
+        ${settingToggle("spreadDriftEnabled", lang() === "zh" ? "Spread 漂移" : "Spread Drift", s.spreadDriftEnabled)}
+        ${settingToggle("expertBallisticsEnabled", lang() === "zh" ? "第三關風偏 / 下墜" : "Level 3 Wind / Drop", s.expertBallisticsEnabled)}
+        ${settingToggle("screenShakeEnabled", lang() === "zh" ? "畫面震動" : "Screen Shake", s.screenShakeEnabled)}
         ${settingRange("screenShake", lang() === "zh" ? "畫面震動" : "Screen Shake", 0, 1, 0.01, s.screenShake)}
         <div class="form-row">
           <label>${lang() === "zh" ? "視覺品質" : "Visual Quality"}</label>
@@ -451,6 +455,14 @@
       <div class="form-row">
         <label>${label} · <strong>${formatSettingValue(value)}</strong></label>
         <input type="range" min="${min}" max="${max}" step="${step}" value="${value}" data-setting="${key}" />
+      </div>
+    `;
+  }
+
+  function settingToggle(key, label, value) {
+    return `
+      <div class="form-row">
+        <label><input type="checkbox" data-setting="${key}" ${value !== false ? "checked" : ""} /> ${label}</label>
       </div>
     `;
   }
@@ -677,6 +689,10 @@
               ${settingRange("touchSensitivity", lang() === "zh" ? "觸控靈敏度" : "Touch Sensitivity", 0.2, 2.6, 0.05, saveData.settings.touchSensitivity)}
               ${settingRange("gyroSensitivity", lang() === "zh" ? "陀螺儀靈敏度" : "Gyro Sensitivity", 0.2, 3.2, 0.05, saveData.settings.gyroSensitivity)}
               ${settingRange("gyroAdsMultiplier", lang() === "zh" ? "陀螺儀開鏡倍率" : "Gyro ADS Multiplier", 0.25, 1, 0.05, saveData.settings.gyroAdsMultiplier)}
+              ${settingToggle("swayEnabled", lang() === "zh" ? "自動晃動" : "Weapon Sway", saveData.settings.swayEnabled)}
+              ${settingToggle("spreadDriftEnabled", lang() === "zh" ? "Spread 漂移" : "Spread Drift", saveData.settings.spreadDriftEnabled)}
+              ${settingToggle("expertBallisticsEnabled", lang() === "zh" ? "第三關風偏 / 下墜" : "Level 3 Wind / Drop", saveData.settings.expertBallisticsEnabled)}
+              ${settingToggle("screenShakeEnabled", lang() === "zh" ? "畫面震動" : "Screen Shake", saveData.settings.screenShakeEnabled)}
             </div>
           </div>
         </div>

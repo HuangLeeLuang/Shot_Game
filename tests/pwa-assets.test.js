@@ -21,7 +21,7 @@ assert(cachedPaths.includes("assets/ai/target-defense-human-real.png"), "service
 assert(cachedPaths.includes("assets/ai/target-sniper-human-real.png"), "service worker caches sniper human target asset");
 assert(cachedPaths.includes("assets/ai/level-defense-real.png"), "service worker caches defense background asset");
 assert(cachedPaths.includes("assets/ai/level-sniper-real.png"), "service worker caches sniper background asset");
-assert(serviceWorker.includes("shooting-game-v8"), "service worker cache version is bumped for realistic level art");
+assert(serviceWorker.includes("shooting-game-v9"), "service worker cache version is bumped for effect toggles");
 
 for (const path of cachedPaths) {
   assert(fs.existsSync(path), `cached path exists: ${path}`);

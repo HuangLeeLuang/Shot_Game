@@ -72,6 +72,11 @@ function makeRun(overrides = {}) {
         gyroSmoothing: 0.28,
         gyroDeadzone: 0.55,
         gyroAcceleration: 1.22,
+        swayEnabled: true,
+        spreadDriftEnabled: true,
+        expertBallisticsEnabled: true,
+        screenShakeEnabled: true,
+        screenShake: 0.65,
         invertY: false,
       },
       stats: {
@@ -79,6 +84,8 @@ function makeRun(overrides = {}) {
         sway: 0,
         spread: 0,
         damage: 1,
+        recoil: 1,
+        fireRate: 1,
       },
       adsAmount: 0,
       recoil: { x: 0, y: 0 },
@@ -166,6 +173,56 @@ let asyncChecks = Promise.resolve();
   const impact = proto.getImpactPoint.call(run, cross);
   assert(impact.x > cross.x, "expert wind moves impact right");
   assert(impact.y > cross.y, "expert drop moves impact down");
+}
+
+{
+  const run = makeRun({
+    level: { id: "sniper" },
+    difficulty: { id: "expert" },
+    stats: { zoom: 2, sway: 0, spread: 0, damage: 1 },
+    settings: Object.assign({}, makeRun().settings, { expertBallisticsEnabled: false }),
+  });
+  const cross = proto.getCrosshairPoint.call(run, 1000);
+  const impact = proto.getImpactPoint.call(run, cross);
+  close(impact.x, cross.x, "disabled expert wind keeps impact on crosshair x");
+  close(impact.y, cross.y, "disabled expert drop keeps impact on crosshair y");
+}
+
+{
+  const run = makeRun({
+    stats: { zoom: 1, sway: 12, spread: 18, damage: 1, recoil: 0, fireRate: 1 },
+    settings: Object.assign({}, makeRun().settings, { swayEnabled: false, spreadDriftEnabled: false }),
+  });
+  const shift = proto.getHandlingShift.call(run, 1234);
+  close(shift.x, 0, "disabled sway and spread remove horizontal handling drift");
+  close(shift.y, 0, "disabled sway removes vertical handling drift");
+}
+
+{
+  const run = makeRun({
+    ammoInMag: 1,
+    reserveAmmo: 0,
+    nextFireAt: 0,
+    reloading: false,
+    mode: "test",
+    sound: { beep() {} },
+    effects: [],
+    decals: [],
+    shake: 0,
+    stats: { zoom: 1, sway: 0, spread: 0, damage: 1, recoil: 10, fireRate: 1 },
+    settings: Object.assign({}, makeRun().settings, { screenShakeEnabled: false, screenShake: 1 }),
+    metrics: {
+      shots: 0,
+      hits: 0,
+      weakHits: 0,
+      cleared: 0,
+      missedOpportunities: 0,
+      reactionTimes: [],
+      score: 0,
+    },
+  });
+  proto.fire.call(run);
+  close(run.shake, 0, "disabled screen shake prevents firing shake");
 }
 
 {

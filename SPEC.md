@@ -56,7 +56,7 @@ Modern range equipment:
 - Free assets may be downloaded when implementation starts.
 - Keep a source record for downloaded assets.
 - First playable version should use CC0 / Public Domain assets where practical.
-- Simple generated placeholders may be used only when a matching CC0 asset cannot be found quickly.
+- Current target and weapon sprites should use realistic AI-generated raster assets with transparent backgrounds; simple placeholders are fallback only.
 
 ### Audio
 

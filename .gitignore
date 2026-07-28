@@ -2,4 +2,5 @@
 .chrome-profile/
 .chrome-profile-2/
 *.png
+!assets/**/*.png
 *.log

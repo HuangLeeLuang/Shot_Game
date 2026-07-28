@@ -15,6 +15,9 @@ const cachedPaths = [...serviceWorker.matchAll(/"\.\/([^"]+)"/g)].map((match) =>
 assert(cachedPaths.includes("index.html"), "service worker caches index.html");
 assert(cachedPaths.includes("src/assets.js"), "service worker caches the asset loader");
 assert(cachedPaths.includes("assets/app-icon.svg"), "service worker caches the app icon");
+assert(cachedPaths.includes("assets/ai/target-paper-real.png"), "service worker caches AI target assets");
+assert(cachedPaths.includes("assets/ai/weapon-rifle-real.png"), "service worker caches AI weapon assets");
+assert(serviceWorker.includes("shooting-game-v3"), "service worker cache version is bumped for AI assets");
 
 for (const path of cachedPaths) {
   assert(fs.existsSync(path), `cached path exists: ${path}`);

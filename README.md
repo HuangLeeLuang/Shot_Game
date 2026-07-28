@@ -25,7 +25,7 @@ https://huangleeluang.github.io/Shot_Game/
 - 手機橫向觸控瞄準與觸控按鈕。
 - 可校準的陀螺儀瞄準。
 - PWA manifest 與 service worker 離線快取。
-- 專案自製 SVG 目標與武器素材。
+- AI 生成並去背處理的寫實 PNG 目標與武器素材，原 SVG 素材保留作備援。
 - 三把基礎槍：手槍、步槍、狙擊槍。
 - 沙盒改槍滑桿。
 - 六槽配件系統。

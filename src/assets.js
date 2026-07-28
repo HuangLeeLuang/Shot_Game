@@ -3,13 +3,13 @@
 
   const ASSET_URLS = {
     appIcon: "assets/app-icon.svg",
-    targetPaper: "assets/target-paper.svg",
-    targetSteel: "assets/target-steel.svg",
-    targetDummy: "assets/dummy-target.svg",
-    targetSniper: "assets/sniper-target.svg",
-    weaponPistol: "assets/pistol.svg",
-    weaponRifle: "assets/rifle.svg",
-    weaponSniper: "assets/sniper-rifle.svg",
+    targetPaper: "assets/ai/target-paper-real.png",
+    targetSteel: "assets/ai/target-steel-real.png",
+    targetDummy: "assets/ai/target-dummy-real.png",
+    targetSniper: "assets/ai/target-sniper-real.png",
+    weaponPistol: "assets/ai/weapon-pistol-real.png",
+    weaponRifle: "assets/ai/weapon-rifle-real.png",
+    weaponSniper: "assets/ai/weapon-sniper-real.png",
   };
 
   const images = {};

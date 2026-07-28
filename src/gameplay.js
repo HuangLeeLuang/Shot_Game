@@ -1201,7 +1201,8 @@
       const r = screen.size;
       const asset = getGameAsset(steel ? "targetSteel" : "targetPaper");
       if (asset) {
-        drawCenteredImage(ctx, asset, 0, r * 0.12, r * 3.1, r * 3.1);
+        const width = steel ? r * 2.15 : r * 2.35;
+        drawCenteredImageByWidth(ctx, asset, 0, 0, width);
         return;
       }
       ctx.fillStyle = steel ? "#aeb6ba" : "#e8dfce";
@@ -1259,7 +1260,7 @@
       }
       const asset = getGameAsset("targetSniper");
       if (asset) {
-        drawCenteredImage(ctx, asset, 0, 0, s * 2.15, s * 2.55);
+        drawCenteredImageByWidth(ctx, asset, 0, 0, s * 2.35);
         return;
       }
       ctx.fillStyle = "#202428";
@@ -1303,10 +1304,9 @@
       const assetName = this.weaponId === "sniper" ? "weaponSniper" : this.weaponId === "rifle" ? "weaponRifle" : "weaponPistol";
       const weaponAsset = getGameAsset(assetName);
       if (weaponAsset) {
-        const width = this.weaponId === "sniper" ? 300 : this.weaponId === "rifle" ? 246 : 156;
-        const height = this.weaponId === "pistol" ? 78 : 92;
+        const width = this.weaponId === "sniper" ? 320 : this.weaponId === "rifle" ? 276 : 178;
         ctx.globalAlpha = lerp(1, 0.62, ads);
-        drawCenteredImage(ctx, weaponAsset, width * 0.22, 0, width, height);
+        drawCenteredImageByWidth(ctx, weaponAsset, width * 0.22, 0, width);
         ctx.restore();
         return;
       }
@@ -1443,6 +1443,11 @@
 
   function drawCenteredImage(ctx, image, x, y, width, height) {
     ctx.drawImage(image, x - width / 2, y - height / 2, width, height);
+  }
+
+  function drawCenteredImageByWidth(ctx, image, x, y, width) {
+    const aspect = image.naturalHeight && image.naturalWidth ? image.naturalHeight / image.naturalWidth : 1;
+    drawCenteredImage(ctx, image, x, y, width, width * aspect);
   }
 
   function drawPerspectiveGrid(ctx, w, h, horizon, lineColor, floorColor) {

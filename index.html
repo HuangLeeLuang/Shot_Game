@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>射擊遊戲</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app-shell"></div>
+    <div id="rotatePrompt" class="rotate-prompt" aria-hidden="true">
+      <div class="rotate-panel">
+        <div class="rotate-icon">16:9</div>
+        <h2 data-i18n="rotateTitle">請將手機轉為橫向</h2>
+        <p data-i18n="rotateBody">射擊遊戲需要橫向畫面以保留瞄準與按鈕空間。</p>
+      </div>
+    </div>
+
+    <script src="src/data.js"></script>
+    <script src="src/storage.js"></script>
+    <script src="src/audio.js"></script>
+    <script src="src/gameplay.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>

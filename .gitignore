@@ -1,0 +1,5 @@
+.browser-profile/
+.chrome-profile/
+.chrome-profile-2/
+*.png
+*.log
